@@ -169,6 +169,8 @@ const Header: FC = () => {
       {
         normal && (
           <div className='flex items-center'>
+            <EnvButton />
+            <div className='mx-2 w-[1px] h-3.5 bg-gray-200'></div>
             <RunAndHistory />
             <div className='mx-2 w-[1px] h-3.5 bg-gray-200'></div>
             <Button
@@ -193,7 +195,6 @@ const Header: FC = () => {
               }}
             />
             <div className='mx-2 w-[1px] h-3.5 bg-gray-200'></div>
-            <EnvButton />
             <Checklist disabled={nodesReadOnly} />
           </div>
         )
