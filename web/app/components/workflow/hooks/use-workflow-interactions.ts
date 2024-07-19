@@ -15,7 +15,7 @@ import { useEdgesInteractions } from './use-edges-interactions'
 import { useNodesInteractions } from './use-nodes-interactions'
 import { useNodesSyncDraft } from './use-nodes-sync-draft'
 import { useEventEmitterContextContext } from '@/context/event-emitter'
-import { fetchPublishedWorkflow, fetchWorkflowDraft } from '@/service/workflow'
+import { fetchWorkflowDraft } from '@/service/workflow'
 import { exportAppConfig } from '@/service/apps'
 import { useToastContext } from '@/app/components/base/toast'
 import { useStore as useAppStore } from '@/app/components/app/store'
@@ -67,12 +67,17 @@ export const useWorkflowUpdate = () => {
       setSyncWorkflowDraftHash,
       setIsSyncingWorkflowDraft,
       setEnvironmentVariables,
+      setEnvSecrets,
     } = workflowStore.getState()
     setIsSyncingWorkflowDraft(true)
     fetchWorkflowDraft(`/apps/${appId}/workflows/draft`).then((response) => {
       handleUpdateWorkflowCanvas(response.graph as WorkflowDataUpdator)
       setSyncWorkflowDraftHash(response.hash)
-      setEnvironmentVariables(response.environment_variables || [])
+      setEnvSecrets((response.environment_variables || []).filter(env => env.value_type === 'secret').reduce((acc, env) => {
+        acc[env.id] = env.value
+        return acc
+      }, {} as Record<string, string>))
+      setEnvironmentVariables(response.environment_variables?.map(env => env.value_type === 'secret' ? { ...env, value: '[__HIDDEN__]' } : env) || [])
     }).finally(() => setIsSyncingWorkflowDraft(false))
   }, [handleUpdateWorkflowCanvas, workflowStore])
 
@@ -123,8 +128,8 @@ export const useDSL = () => {
     if (!appDetail)
       return
     try {
-      const publishedWorkflow = await fetchPublishedWorkflow(`/apps/${appDetail?.id}/workflows/publish`)
-      const list = (publishedWorkflow.environment_variables || []).filter(env => env.value_type === 'secret')
+      const workflowDraft = await fetchWorkflowDraft(`/apps/${appDetail?.id}/workflows/draft`)
+      const list = (workflowDraft.environment_variables || []).filter(env => env.value_type === 'secret')
       if (list.length === 0) {
         handleExportDSL()
         return
